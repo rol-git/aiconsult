@@ -1,0 +1,116 @@
+.header {
+  background: var(--surface-high);
+  backdrop-filter: blur(20px);
+  color: var(--text-primary);
+  padding: 2.5rem 2.5rem 2rem;
+  border-radius: 32px;
+  border: 2px solid var(--border-soft);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
+  animation: fadeInDown 0.6s ease-out;
+}
+
+.header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--gradient-primary);
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.header-content {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  background: var(--gradient-primary);
+  border-radius: 20px;
+  border: 2px solid var(--border-soft);
+  color: white;
+  font-size: 2rem;
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+  animation: iconFloat 3s ease-in-out infinite;
+}
+
+@keyframes iconFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
+
+.header-text h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 0.4rem;
+  line-height: 1.2;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.01em;
+}
+
+.header-text p {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.header-subtitle {
+  max-width: 900px;
+  margin: 1rem auto 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 0.8rem 1rem;
+  background: var(--surface-low);
+  border-radius: 12px;
+  border: 1px solid var(--border-soft);
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 1.5rem 1.2rem;
+  }
+
+  .header-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+
+  .header-text h1 {
+    font-size: 1.5rem;
+  }
+
+  .header-text p {
+    font-size: 0.95rem;
+  }
+
+  .header-subtitle {
+    font-size: 0.9rem;
+  }
+}
+

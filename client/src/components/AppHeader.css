@@ -1,0 +1,136 @@
+.app-header {
+  width: 100%;
+  height: var(--header-height);
+  padding: 1.1rem 2rem;
+  border-bottom-left-radius: 32px;
+  border-bottom-right-radius: 32px;
+  border: 1px solid #dfe8f3;
+  border-top: none;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(32, 73, 118, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  box-sizing: border-box;
+}
+
+.app-header--hidden {
+  transform: translateY(-140%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-header__brand {
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.app-header__brand p {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.7rem;
+  color: #4a668a;
+  margin-bottom: 0.35rem;
+}
+
+.app-header__brand h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: #0f223d;
+}
+
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.header-icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid #0c63b3;
+  background: transparent;
+  color: #0c63b3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.header-icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.header-icon-btn:hover {
+  background: #0c63b3;
+  color: #ffffff;
+}
+
+.header-icon-btn--danger {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.header-icon-btn--danger:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.header-btn {
+  height: 38px;
+  border: 2px solid #0c63b3;
+  border-radius: 999px;
+  padding: 0 1.1rem;
+  background: transparent;
+  color: #0c63b3;
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-btn:hover {
+  background: #0c63b3;
+  color: #ffffff;
+}
+
+.header-btn--danger {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.header-btn--danger:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .app-header__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
