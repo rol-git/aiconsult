@@ -9,13 +9,16 @@ import logging
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
+from flask_socketio import SocketIO
 
 from database import Base, init_engine, remove_session
 from interfaces import IAIService
 from routes.auth_routes import create_auth_blueprint
 from routes.chat_routes import create_chat_blueprint
 from routes.faq_routes import create_faq_blueprint
+from routes.support_routes import create_support_blueprint
 from service_factory import get_service_factory
+from socket_events import init_socketio
 
 # Настройка логирования
 logging.basicConfig(
@@ -35,7 +38,10 @@ class FloodSupportApp:
     def __init__(self):
         """Инициализация приложения."""
         self.app = Flask(__name__)
+        # CORS для HTTP API - разрешаем все источники
         CORS(self.app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
+        # Также разрешаем CORS для корневых путей (health, info и т.д.)
+        CORS(self.app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
         
         # Получаем фабрику сервисов
         self.service_factory = get_service_factory()
@@ -45,6 +51,9 @@ class FloodSupportApp:
         self._setup_database()
         self._setup_security()
         self.ai_service: IAIService = self.service_factory.create_ai_service()
+        
+        # Инициализируем SocketIO
+        self._setup_socketio()
         
         # Регистрируем маршруты
         self._register_routes()
@@ -68,6 +77,30 @@ class FloodSupportApp:
         self.app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=self.config.jwt_expires_minutes)
         self.jwt = JWTManager(self.app)
 
+    def _setup_socketio(self) -> None:
+        """Настраивает WebSocket соединение."""
+        # SocketIO использует тот же Flask app, поэтому работает на том же порту
+        # CORS настроен для разрешения подключений с любого источника
+        self.socketio = SocketIO(
+            self.app,  # Используем тот же Flask app - WebSocket на том же порту
+            cors_allowed_origins="*",  # Разрешаем подключения с любого источника
+            async_mode='threading',
+            logger=True,
+            engineio_logger=True,  # Включаем логирование для отладки
+            always_connect=True,
+            ping_timeout=60,
+            ping_interval=25
+        )
+        # Инициализируем обработчики событий
+        print("=" * 80)
+        print("🔧 НАСТРОЙКА SocketIO")
+        print(f"   Flask app: {self.app}")
+        print(f"   SocketIO instance: {self.socketio}")
+        print("=" * 80)
+        self.socket_handlers = init_socketio(self.app, self.socketio)
+        print("✅ SocketIO обработчики зарегистрированы")
+        logger.info("SocketIO инициализирован с полным логированием")
+
     def _register_routes(self) -> None:
         """Регистрирует все маршруты приложения."""
         self.app.route('/api/ask', methods=['POST'])(self.ask_question)
@@ -76,6 +109,7 @@ class FloodSupportApp:
         self.app.register_blueprint(create_auth_blueprint())
         self.app.register_blueprint(create_chat_blueprint(self.ai_service))
         self.app.register_blueprint(create_faq_blueprint())
+        self.app.register_blueprint(create_support_blueprint())
     
     def ask_question(self):
         """
@@ -188,12 +222,24 @@ class FloodSupportApp:
         if port is None:
             port = self.config.server_port
         
+        print("=" * 80)
+        print("🚀 ЗАПУСК СЕРВЕРА")
+        print(f"   Host: {host}")
+        print(f"   Port: {port}")
+        print(f"   Debug: {debug}")
+        print(f"   HTTP API: http://{host}:{port}/api/*")
+        print(f"   WebSocket: ws://{host}:{port}/socket.io/")
+        print(f"   CORS: разрешены все источники (*)")
+        print(f"   SocketIO: {self.socketio}")
+        print(f"   Flask app: {self.app}")
+        print("=" * 80)
         logger.info(f"Запуск сервера на {host}:{port}")
         logger.info(f"Модель AI: {self.config.openrouter_model}")
         logger.info(f"Режим: мультиагентный RAG (локальные документы)")
         logger.info(f"Регион: Тюменская область")
+        logger.info("WebSocket поддержка включена")
         
-        self.app.run(host=host, port=port, debug=debug, use_reloader=False)
+        self.socketio.run(self.app, host=host, port=port, debug=debug, use_reloader=False, allow_unsafe_werkzeug=True)
 
 
 def create_app() -> Flask:

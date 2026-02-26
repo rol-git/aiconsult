@@ -18,6 +18,7 @@ def serialize_user(user: User) -> dict:
         "id": str(user.id),
         "email": user.email,
         "name": user.name,
+        "role": user.role,
         "createdAt": user.created_at.isoformat(),
     }
 

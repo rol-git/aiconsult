@@ -74,7 +74,70 @@ class MultiAgentConsultantService(IAIService):
         if not results:
             raise RuntimeError("Не удалось подобрать подходящего агента для обработки запроса")
 
-        return self._merge_results(results)
+        merged_response = self._merge_results(results)
+        
+        # Проверяем, нужна ли помощь оператора
+        merged_response.suggest_operator = self._should_suggest_operator(question, context, merged_response)
+        
+        return merged_response
+    
+    def _should_suggest_operator(self, question: str, context: Optional[str], response: AIResponse) -> bool:
+        """
+        Определяет, нужно ли предложить пользователю связаться с оператором.
+        """
+        # Ключевые фразы, указывающие на необходимость оператора
+        operator_keywords = [
+            "не могу найти",
+            "не понимаю",
+            "не получается",
+            "помогите",
+            "срочно",
+            "жалоба",
+            "не отвечают",
+            "не помогают",
+            "обман",
+            "мошенничество",
+            "нарушение",
+            "незаконно",
+            "требую",
+            "прокуратура",
+            "суд",
+            "оператор",
+            "человек",
+            "живой человек",
+            "специалист",
+        ]
+        
+        question_lower = question.lower()
+        
+        # Проверяем наличие ключевых слов в вопросе
+        has_operator_keywords = any(keyword in question_lower for keyword in operator_keywords)
+        
+        # Проверяем контекст - если пользователь задает много вопросов подряд
+        repeated_questions = False
+        if context:
+            context_lower = context.lower()
+            # Считаем количество вопросительных знаков в истории
+            question_count = context_lower.count("?")
+            repeated_questions = question_count >= 3
+        
+        # Проверяем, если ответ содержит "need_more_context"
+        needs_clarification = response.notes == "need_more_context"
+        
+        # Предлагаем оператора, если:
+        # 1. Есть ключевые слова И нужны уточнения
+        # 2. Пользователь задал много вопросов подряд
+        # 3. Явный запрос на оператора
+        if "оператор" in question_lower or "человек" in question_lower or "специалист" in question_lower:
+            return True
+        
+        if has_operator_keywords and needs_clarification:
+            return True
+            
+        if repeated_questions and needs_clarification:
+            return True
+        
+        return False
 
     def _merge_results(self, responses: Iterable[AIResponse]) -> AIResponse:
         responses = list(responses)
@@ -100,11 +163,16 @@ class MultiAgentConsultantService(IAIService):
 
         merged_sources = self._merge_sources(responses)
         combined_answer = "\n\n".join(response.answer.strip() for response in responses)
+        
+        # Проверяем, предлагал ли хоть один агент оператора
+        any_suggest_operator = any(r.suggest_operator for r in responses)
+        
         return AIResponse(
             answer=combined_answer,
             agent_types=unique_agent_types,
             sources=merged_sources,
             suggested_questions=suggestions,
+            suggest_operator=any_suggest_operator,
         )
 
     def _merge_sources(self, responses: Iterable[AIResponse]):

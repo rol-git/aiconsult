@@ -88,6 +88,7 @@ class AIResponse:
     sources: List[AISource] = field(default_factory=list)
     notes: Optional[str] = None
     suggested_questions: List[str] = field(default_factory=list)
+    suggest_operator: bool = False  # Флаг для предложения оператора
 
     def to_dict(self) -> dict:
         return {
@@ -97,6 +98,7 @@ class AIResponse:
             "sources": [source.to_dict() for source in self.sources],
             "notes": self.notes,
             "suggestedQuestions": self.suggested_questions,
+            "suggestOperator": self.suggest_operator,
         }
 
 

@@ -195,6 +195,7 @@ def create_chat_blueprint(ai_service: IAIService) -> Blueprint:
 
         assistant_payload = serialize_message(assistant_message)
         assistant_payload["suggestedQuestions"] = ai_response.suggested_questions
+        assistant_payload["suggestOperator"] = ai_response.suggest_operator
 
         return jsonify(
             {

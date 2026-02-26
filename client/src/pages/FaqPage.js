@@ -3,6 +3,34 @@ import { apiRequest } from '../services/api';
 
 const normalize = (value) => (value || '').toString().trim().toLowerCase();
 
+// Маппинг тегов к иконкам
+const getIconForTags = (tags) => {
+  if (!tags || !Array.isArray(tags) || tags.length === 0) {
+    return '💬'; // Иконка по умолчанию
+  }
+  
+  // Приоритет иконок (если несколько тегов, берем первый по приоритету)
+  const tag = tags[0];
+  
+  const iconMap = {
+    // Выплаты
+    'payouts': '💰',
+    // Действия (поддерживаем оба варианта)
+    'actions': '⚡',
+    'actions_now': '⚡',
+    // Законы (поддерживаем оба варианта)
+    'law': '⚖️',
+    'law_explanations': '⚖️',
+    // Документы (поддерживаем оба варианта)
+    'docs': '📄',
+    'docs_help': '📄',
+    // Разговор
+    'small_talk': '💬',
+  };
+  
+  return iconMap[tag] || '💬';
+};
+
 const FaqPage = ({ isVisible, onClose, onAsk }) => {
   const [items, setItems] = useState([]);
   const [query, setQuery] = useState('');
@@ -81,6 +109,7 @@ const FaqPage = ({ isVisible, onClose, onAsk }) => {
             if (!question) {
               return null;
             }
+            const icon = getIconForTags(item?.tags);
             return (
               <button
                 key={question}
@@ -91,7 +120,10 @@ const FaqPage = ({ isVisible, onClose, onAsk }) => {
                   onClose?.();
                 }}
               >
-                <strong>{question}</strong>
+                <div className="faq-card-header">
+                  <span className="faq-card-icon">{icon}</span>
+                  <strong>{question}</strong>
+                </div>
                 <span>Нажмите, чтобы отправить в чат</span>
               </button>
             );

@@ -1,6 +1,10 @@
 :root {
   --header-height: 104px;
   --header-gap: 12px;
+  --primary-color: #1da1f2;
+  --success-color: #17bf63;
+  --warning-color: #ffad1f;
+  --danger-color: #e0245e;
 }
 
 .App {
@@ -37,6 +41,8 @@
   overflow: hidden;
   box-sizing: border-box;
   overscroll-behavior: contain;
+  height: calc(100vh - var(--header-height) - var(--header-gap));
+  max-height: calc(100vh - var(--header-height) - var(--header-gap));
 }
 
 .app-loading-screen {
@@ -516,6 +522,24 @@
   transform: translateY(-2px);
 }
 
+.faq-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.faq-card-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.faq-card strong {
+  flex: 1;
+  line-height: 1.4;
+}
+
 .faq-card span {
   font-size: 0.85rem;
   color: #8ba3bd;
@@ -924,5 +948,90 @@
   .workspace__composer {
     padding: 0.8rem 1rem 1.2rem;
   }
+}
+
+/* Operator suggestion styles */
+.operator-suggestion {
+  padding: 16px 24px;
+  background: #fff3cd;
+  border-top: 1px solid #ffc107;
+  border-bottom: 1px solid #ffc107;
+}
+
+.operator-suggestion-content {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.operator-suggestion-content p {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #856404;
+  font-weight: 500;
+}
+
+.operator-suggestion-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.operator-suggestion-actions button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.operator-suggestion-actions .btn-primary {
+  background: var(--primary-color);
+  color: #fff;
+}
+
+.operator-suggestion-actions .btn-primary:hover {
+  background: #1a91da;
+}
+
+.operator-suggestion-actions .btn-primary:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.operator-suggestion-actions .btn-secondary {
+  background: #fff;
+  color: #856404;
+  border: 1px solid #ffc107;
+}
+
+.operator-suggestion-actions .btn-secondary:hover {
+  background: #fff9e6;
+}
+
+.support-status-banner {
+  padding: 12px 24px;
+  background: #d1ecf1;
+  border-top: 1px solid #bee5eb;
+  border-bottom: 1px solid #bee5eb;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #0c5460;
+  font-weight: 500;
+}
+
+.support-status-icon {
+  font-size: 18px;
+}
+
+.inline-error {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #fee;
+  color: #c33;
+  border-radius: 4px;
+  font-size: 13px;
 }
 

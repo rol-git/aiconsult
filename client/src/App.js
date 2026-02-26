@@ -1,14 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import { useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
 import ChatPage from './pages/ChatPage';
 import GuestChatPage from './pages/GuestChatPage';
+import SupportPage from './pages/SupportPage';
 import AppHeader from './components/AppHeader';
+import { initSocket, disconnectSocket } from './services/socket';
 
 function App() {
-  const { isInitializing, isAuthenticated, logout } = useAuth();
+  const { isInitializing, isAuthenticated, user, token, logout } = useAuth();
   const [authMode, setAuthMode] = useState(null); // 'login' | 'register' | null
+
+  // Инициализация WebSocket при аутентификации
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      initSocket(token);
+    } else {
+      disconnectSocket();
+    }
+
+    return () => {
+      disconnectSocket();
+    };
+  }, [isAuthenticated, token]);
 
   const renderBody = () => {
     if (isInitializing) {
@@ -21,6 +36,10 @@ function App() {
     }
 
     if (isAuthenticated) {
+      // Если пользователь - оператор поддержки, показываем панель поддержки
+      if (user?.role === 'support') {
+        return <SupportPage />;
+      }
       return <ChatPage />;
     }
 

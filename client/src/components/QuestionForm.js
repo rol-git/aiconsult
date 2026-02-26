@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './QuestionForm.css';
 
-function QuestionForm({ onSubmit, isLoading, disabled }) {
+function QuestionForm({ onSubmit, isLoading, disabled, placeholder }) {
   const [question, setQuestion] = useState('');
 
   const handleSubmit = (event) => {
@@ -25,7 +25,7 @@ function QuestionForm({ onSubmit, isLoading, disabled }) {
       <div className="input-row">
         <textarea
           rows="1"
-          placeholder="Задайте вопрос..."
+          placeholder={placeholder || "Задайте вопрос..."}
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
           onKeyDown={handleKeyDown}

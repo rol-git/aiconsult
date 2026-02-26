@@ -13,7 +13,7 @@ const formatTime = (value) => {
   }
 };
 
-function ChatHistory({ messages, isLoading, isSending, onSuggestionSelect }) {
+function ChatHistory({ messages, isLoading, isSending, onSuggestionSelect, onRequestSupport, showOperatorButton }) {
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -37,27 +37,40 @@ function ChatHistory({ messages, isLoading, isSending, onSuggestionSelect }) {
 
   return (
     <div className="chat-history" ref={containerRef}>
-      {messages.map((message) => (
-        <div key={message.id} className={`bubble ${message.role}`}>
-          <div className="bubble-meta">
-            <span>{message.role === 'user' ? 'Вы' : 'Консультант'}</span>
-            <time>{formatTime(message.createdAt)}</time>
-          </div>
-          <div className="bubble-body">
-            {message.role === 'assistant' ? (
-              <ReactMarkdown>{message.content}</ReactMarkdown>
-            ) : (
-              <p>{message.content}</p>
-            )}
-          </div>
-          {message.role === 'assistant' &&
-            Array.isArray(message.suggestedQuestions) &&
-            message.suggestedQuestions.length > 0 && (
+      {messages.map((message, index) => {
+        const isUser = message.role === 'user';
+        const isSupport = message.role === 'support';
+        const isSystem = message.role === 'system';
+        const isAssistant = message.role === 'assistant';
+        const isLastMessage = index === messages.length - 1;
+        
+        let displayName = 'Консультант';
+        if (isUser) displayName = 'Вы';
+        else if (isSupport) displayName = message.senderName || 'Оператор';
+        else if (isSystem) displayName = 'Система';
+        
+        const hasSuggestions = Array.isArray(message.suggestedQuestions) && message.suggestedQuestions.length > 0;
+        const showOperatorBtn = showOperatorButton && onRequestSupport && isLastMessage && isAssistant;
+        
+        return (
+          <div key={message.id} className={`bubble ${message.role}`}>
+            <div className="bubble-meta">
+              <span>{displayName}</span>
+              <time>{formatTime(message.createdAt)}</time>
+            </div>
+            <div className="bubble-body">
+              {isAssistant ? (
+                <ReactMarkdown>{message.content}</ReactMarkdown>
+              ) : (
+                <p>{message.content}</p>
+              )}
+            </div>
+            {(hasSuggestions || showOperatorBtn) && (
               <div className="bubble-foot">
                 <div className="bubble-suggestions">
                   <span>Попробуйте спросить:</span>
                   <div className="suggestions-list">
-                    {message.suggestedQuestions.map((question) => (
+                    {hasSuggestions && message.suggestedQuestions.map((question) => (
                       <button
                         key={question}
                         type="button"
@@ -66,12 +79,23 @@ function ChatHistory({ messages, isLoading, isSending, onSuggestionSelect }) {
                         {question}
                       </button>
                     ))}
+                    {showOperatorBtn && (
+                      <button
+                        key="operator-request"
+                        type="button"
+                        className="operator-request-button"
+                        onClick={onRequestSupport}
+                      >
+                        👤 Позвать оператора
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
             )}
-        </div>
-      ))}
+          </div>
+        );
+      })}
 
       {(isLoading || isSending) && (
         <div className="bubble assistant pending">

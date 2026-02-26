@@ -62,6 +62,49 @@
   border-color: #e3edf7;
 }
 
+.bubble.support {
+  align-self: flex-start;
+  border-bottom-left-radius: 6px;
+  background: #e8f5e9;
+  border-color: #a5d6a7;
+}
+
+.bubble.support .bubble-meta {
+  color: #2e7d32;
+}
+
+.bubble.system {
+  align-self: center;
+  background: #fff3cd;
+  border-color: #ffc107;
+  max-width: 90%;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.bubble.system .bubble-meta {
+  color: #856404;
+  justify-content: center;
+}
+
+.bubble.system .bubble-body p {
+  margin: 0;
+  color: #856404;
+}
+
+.operator-request-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  font-weight: 600 !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3) !important;
+}
+
+.operator-request-button:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
+}
+
 .bubble-meta {
   display: flex;
   justify-content: space-between;
