@@ -42,3 +42,6 @@ server/storage/index/
 # Logs
 *.log
 logs/
+
+# Tooling local state
+.omc/

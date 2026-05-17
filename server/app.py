@@ -17,6 +17,7 @@ from routes.auth_routes import create_auth_blueprint
 from routes.chat_routes import create_chat_blueprint
 from routes.faq_routes import create_faq_blueprint
 from routes.support_routes import create_support_blueprint
+from routes.voice_routes import create_voice_blueprint
 from service_factory import get_service_factory
 from socket_events import init_socketio
 
@@ -110,6 +111,7 @@ class FloodSupportApp:
         self.app.register_blueprint(create_chat_blueprint(self.ai_service))
         self.app.register_blueprint(create_faq_blueprint())
         self.app.register_blueprint(create_support_blueprint())
+        self.app.register_blueprint(create_voice_blueprint())
     
     def ask_question(self):
         """

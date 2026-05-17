@@ -80,6 +80,66 @@
   animation: spin 0.8s linear infinite;
 }
 
+.mic-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #eef3f8;
+  color: #0c63b3;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.mic-button:hover:not(:disabled) {
+  background: #dce6f1;
+  transform: scale(1.05);
+}
+
+.mic-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.mic-button.mic-recording {
+  background: #e53935;
+  color: #ffffff;
+  animation: mic-pulse 1.4s ease-in-out infinite;
+}
+
+.mic-button.mic-processing {
+  background: #0c63b3;
+  color: #ffffff;
+}
+
+.mic-button.mic-processing .send-spinner {
+  width: 14px;
+  height: 14px;
+}
+
+@keyframes mic-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(229, 57, 53, 0);
+  }
+}
+
+.voice-error {
+  margin-top: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  color: #b3261e;
+  background: #fdecea;
+  border-radius: 8px;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -91,7 +151,8 @@
     padding: 0.4rem 0.4rem 0.4rem 0.8rem;
   }
 
-  .send-button {
+  .send-button,
+  .mic-button {
     width: 32px;
     height: 32px;
   }
