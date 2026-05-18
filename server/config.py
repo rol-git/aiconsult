@@ -24,6 +24,7 @@ class Config:
         """Загружает настройки из переменных окружения."""
         self.server_port: int = int(os.getenv('SERVER_PORT', 5000))
         self.database_url: str = os.getenv('DATABASE_URL', '').strip()
+        self.redis_url: str = os.getenv('REDIS_URL', 'redis://localhost:6379/0').strip()
         self.jwt_secret_key: str = os.getenv('JWT_SECRET_KEY', 'super-secret-key')
         self.jwt_expires_minutes: int = int(os.getenv('JWT_EXPIRES_MINUTES', 60 * 24))
 

@@ -11,7 +11,7 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_socketio import SocketIO
 
-from database import Base, init_engine, remove_session
+from database import init_engine, remove_session
 from interfaces import IAIService
 from geo import UserContext, UserLocation
 from routes.auth_routes import create_auth_blueprint
@@ -64,13 +64,15 @@ class FloodSupportApp:
         logger.info("Приложение FloodSupportApp инициализировано")
     
     def _setup_database(self) -> None:
-        """Настраивает подключение к базе данных."""
+        """Настраивает подключение к базе данных.
+
+        Схема БД управляется Alembic-миграциями (см. migrations/), а не create_all.
+        """
         self.engine = init_engine(self.config.database_url)
 
-        # Импорт моделей для регистрации метаданных
+        # Импорт моделей для регистрации метаданных у ORM
         from models import ChatSession, Message, User  # noqa: F401
 
-        Base.metadata.create_all(self.engine)
         self.app.teardown_appcontext(remove_session)
         logger.info("Подключение к базе данных инициализировано")
 

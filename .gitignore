@@ -30,10 +30,12 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+infra/.env
 
 # Storage (optional - можно убрать если хотите сохранить индексы)
 server/storage/chroma/
 server/storage/index/
+server/storage/hf/
 
 # Database
 *.db
