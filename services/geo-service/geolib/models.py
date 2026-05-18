@@ -1,19 +1,9 @@
-"""Dataclasses для geo-слоя. Используются и для сериализации, и для парсинга
-ответов geo-service (HTTP)."""
+"""Dataclasses для geo-слоя."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
-
-
-def _coerce_float(value: Any) -> Optional[float]:
-    if value is None:
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
+from typing import List, Optional
 
 
 @dataclass
@@ -31,15 +21,6 @@ class UserLocation:
             "source": self.source,
         }
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "UserLocation":
-        return cls(
-            lat=float(data["lat"]),
-            lon=float(data["lon"]),
-            accuracy_m=_coerce_float(data.get("accuracyM") or data.get("accuracy_m")),
-            source=str(data.get("source") or "browser"),
-        )
-
 
 @dataclass
 class MapLinks:
@@ -52,14 +33,6 @@ class MapLinks:
         if self.dgis_object:
             out["dgisObject"] = self.dgis_object
         return out
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "MapLinks":
-        return cls(
-            yandex=str(data.get("yandex") or ""),
-            dgis=str(data.get("dgis") or ""),
-            dgis_object=data.get("dgisObject"),
-        )
 
 
 @dataclass
@@ -88,20 +61,6 @@ class PVR:
             "lon": self.lon,
         }
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PVR":
-        return cls(
-            pvr_id=int(data.get("id") or 0),
-            name=str(data.get("name") or ""),
-            address=str(data.get("address") or ""),
-            district=str(data.get("district") or ""),
-            settlement=str(data.get("settlement") or ""),
-            phone=str(data.get("phone") or ""),
-            capacity=data.get("capacity"),
-            lat=float(data.get("lat") or 0.0),
-            lon=float(data.get("lon") or 0.0),
-        )
-
 
 @dataclass
 class NearestPVR:
@@ -115,14 +74,6 @@ class NearestPVR:
             "distanceKm": round(self.distance_km, 2),
             "links": self.links.to_dict(),
         }
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "NearestPVR":
-        return cls(
-            pvr=PVR.from_dict(data),
-            distance_km=float(data.get("distanceKm") or 0.0),
-            links=MapLinks.from_dict(data.get("links") or {}),
-        )
 
 
 @dataclass
@@ -148,15 +99,6 @@ class FloodCheck:
     in_clean_zone: bool
     nearest_zone_km: Optional[float]
     nearest_zone_district: Optional[str]
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "FloodCheck":
-        return cls(
-            in_max_zone=bool(data.get("inMaxZone")),
-            in_clean_zone=bool(data.get("inCleanZone")),
-            nearest_zone_km=_coerce_float(data.get("nearestZoneKm")),
-            nearest_zone_district=data.get("nearestZoneDistrict"),
-        )
 
 
 @dataclass
@@ -187,21 +129,6 @@ class GeoCard:
             "nearestHydropostKm": self.nearest_hydropost_km,
             "notes": self.notes,
         }
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "GeoCard":
-        loc_raw = data.get("location")
-        flood_raw = data.get("flood")
-        return cls(
-            location=UserLocation.from_dict(loc_raw) if loc_raw else None,
-            in_tyumen=bool(data.get("inTyumen")),
-            nearest_pvrs=[NearestPVR.from_dict(item) for item in (data.get("nearestPvrs") or [])],
-            flood=FloodCheck.from_dict(flood_raw) if flood_raw else None,
-            blocked_roads_nearby=int(data.get("blockedRoadsNearby") or 0),
-            nearest_hydropost_km=_coerce_float(data.get("nearestHydropostKm")),
-            address_label=data.get("addressLabel"),
-            notes=list(data.get("notes") or []),
-        )
 
     def to_prompt_block(self) -> str:
         """Текстовое представление для системного промпта LLM."""

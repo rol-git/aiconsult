@@ -17,6 +17,3 @@ pypdf==4.2.0
 odfpy==1.4.1
 psycopg2-binary==2.9.9
 asyncpg==0.29.0
-yandexcloud==0.390.0
-grpcio==1.80.0
-shapely==2.0.6

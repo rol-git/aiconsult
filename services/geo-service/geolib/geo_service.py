@@ -10,10 +10,10 @@ import logging
 import threading
 from typing import Iterable, List, Optional, Tuple
 
-from geo.cache import TTLCache
-from geo.geocoder import NominatimGeocoder
-from geo.maps_links import build_route_pair, dgis_point_url, yandex_point_url
-from geo.models import (
+from geolib.cache import TTLCache
+from geolib.geocoder import NominatimGeocoder
+from geolib.maps_links import build_route_pair, dgis_point_url, yandex_point_url
+from geolib.models import (
     FloodCheck,
     GeoCard,
     HydroPost,
@@ -24,8 +24,8 @@ from geo.models import (
     UserContext,
     UserLocation,
 )
-from geo.orbismap_client import OrbismapClient
-from geo.spatial import (
+from geolib.orbismap_client import OrbismapClient
+from geolib.spatial import (
     _SpatialFeature,
     feature_from_geojson,
     nearest_points_by_distance,
@@ -33,7 +33,7 @@ from geo.spatial import (
     point_in_any,
     haversine_km,
 )
-from geo.tyumen_boundary import is_in_tyumen
+from geolib.tyumen_boundary import is_in_tyumen
 
 logger = logging.getLogger(__name__)
 

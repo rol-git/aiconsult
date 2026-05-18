@@ -35,6 +35,42 @@ services:
       timeout: 5s
       retries: 10
 
+  geo-service:
+    build:
+      context: ../services/geo-service
+    container_name: aiconsult-geo
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: 5000
+    ports:
+      - "${GEO_PORT}:5000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  stt-service:
+    build:
+      context: ../services/stt-service
+    container_name: aiconsult-stt
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: 5000
+    ports:
+      - "${STT_PORT}:5000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
   server:
     build:
       context: ../server
@@ -49,6 +85,8 @@ services:
       DOCS_ROOT: /app/docs
       HF_HOME: /app/storage/hf
       SERVER_PORT: 5000
+      GEO_SERVICE_URL: http://geo-service:5000
+      STT_SERVICE_URL: http://stt-service:5000
     volumes:
       - ../docs:/app/docs:ro
       - server_storage:/app/storage
@@ -59,6 +97,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      geo-service:
+        condition: service_started
+      stt-service:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:5000/api/health"]
       interval: 10s

@@ -19,7 +19,8 @@ import re
 from typing import List, Optional
 
 from agents.base import AGENT_FOLLOWUPS, AgentType, AIResponse
-from geo import GeoService, UserContext, UserLocation
+from geo import UserContext, UserLocation
+from geo_client import GeoHttpClient
 from llm.openrouter_client import OpenRouterClient
 
 logger = logging.getLogger(__name__)
@@ -83,9 +84,9 @@ class GeoAgent:
 
     _COORD_PAIR_RE = re.compile(r"^\s*-?\d+(?:[.,]\d+)?\s*[,;]\s*-?\d+(?:[.,]\d+)?\s*$")
 
-    def __init__(self, geo_service: GeoService, client: OpenRouterClient) -> None:
+    def __init__(self, geo_client: GeoHttpClient, client: OpenRouterClient) -> None:
         self.agent_type = AgentType.GEO
-        self.geo = geo_service
+        self.geo = geo_client
         self.client = client
 
     def run(

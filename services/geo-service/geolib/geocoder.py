@@ -10,7 +10,7 @@ from typing import Optional
 
 import httpx
 
-from geo.cache import TTLCache
+from geolib.cache import TTLCache
 
 logger = logging.getLogger(__name__)
 

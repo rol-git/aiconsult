@@ -12,6 +12,7 @@ from redis import Redis
 
 from ai_service import MultiAgentConsultantService
 from config import Config
+from geo_client import GeoHttpClient
 from interfaces import IAIService
 from llm.openrouter_client import OpenRouterClient
 from rag.rag_service import RAGService
@@ -34,6 +35,7 @@ class ServiceFactory:
         self._ai_service: IAIService = None
         self._redis: Redis | None = None
         self._presence: PresenceStore | None = None
+        self._geo_client: GeoHttpClient | None = None
     
     def create_config(self) -> Config:
         """
@@ -74,10 +76,18 @@ class ServiceFactory:
             )
         return self._openrouter_client
     
+    def create_geo_client(self) -> GeoHttpClient:
+        """Возвращает HTTP-клиент к geo-service (singleton)."""
+        if self._geo_client is None:
+            config = self.create_config()
+            logger.info("Инициализация GeoHttpClient: %s", config.geo_service_url)
+            self._geo_client = GeoHttpClient(config.geo_service_url)
+        return self._geo_client
+
     def create_ai_service(self) -> IAIService:
         """
         Создает AI сервис со всеми зависимостями.
-        
+
         Returns:
             IAIService: AI сервис
         """
@@ -85,17 +95,19 @@ class ServiceFactory:
             config = self.create_config()
             rag_service = self.create_rag_service()
             openrouter_client = self.create_openrouter_client()
+            geo_client = self.create_geo_client()
 
-            logger.info("Инициализация мультиагентного AI сервиса (OpenRouter + RAG)")
+            logger.info("Инициализация мультиагентного AI сервиса (OpenRouter + RAG + geo-svc)")
             self._ai_service = MultiAgentConsultantService(
                 config=config,
                 rag_service=rag_service,
                 openrouter_client=openrouter_client,
+                geo_client=geo_client,
             )
-            
+
             self._ai_service.validate_configuration()
             logger.info("AI сервис успешно инициализирован")
-        
+
         return self._ai_service
     
     def create_redis(self) -> Redis:
@@ -130,6 +142,7 @@ class ServiceFactory:
         self._ai_service = None
         self._redis = None
         self._presence = None
+        self._geo_client = None
 
         logger.info("Все сервисы сброшены")
 

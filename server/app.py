@@ -17,9 +17,7 @@ from geo import UserContext, UserLocation
 from routes.auth_routes import create_auth_blueprint
 from routes.chat_routes import create_chat_blueprint
 from routes.faq_routes import create_faq_blueprint
-from routes.geo_routes import create_geo_blueprint
 from routes.support_routes import create_support_blueprint
-from routes.voice_routes import create_voice_blueprint
 from service_factory import get_service_factory
 from socket_events import init_socketio
 
@@ -110,7 +108,11 @@ class FloodSupportApp:
         logger.info("SocketIO инициализирован с полным логированием")
 
     def _register_routes(self) -> None:
-        """Регистрирует все маршруты приложения."""
+        """Регистрирует все маршруты приложения.
+
+        /api/geo и /api/voice больше не входят в монолит — клиент идёт
+        напрямую в geo-service и stt-service (через свои env-переменные).
+        """
         self.app.route('/api/ask', methods=['POST'])(self.ask_question)
         self.app.route('/api/health', methods=['GET'])(self.health_check)
         self.app.route('/api/info', methods=['GET'])(self.get_info)
@@ -118,23 +120,6 @@ class FloodSupportApp:
         self.app.register_blueprint(create_chat_blueprint(self.ai_service))
         self.app.register_blueprint(create_faq_blueprint())
         self.app.register_blueprint(create_support_blueprint())
-        self.app.register_blueprint(create_voice_blueprint())
-        self.app.register_blueprint(create_geo_blueprint())
-        self._prewarm_geo_async()
-
-    def _prewarm_geo_async(self) -> None:
-        """Фоном грузим ПВР-слой, чтобы первый запрос пользователя был быстрым."""
-        import threading
-        from geo import get_geo_service
-
-        def _worker() -> None:
-            try:
-                get_geo_service().prewarm()
-                logger.info("Geo prewarm: ПВР-слой прогрет")
-            except Exception as exc:
-                logger.warning("Geo prewarm failed: %s", exc)
-
-        threading.Thread(target=_worker, daemon=True, name="geo-prewarm").start()
     
     def ask_question(self):
         """

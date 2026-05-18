@@ -2,7 +2,8 @@ import { useCallback, useRef, useState } from 'react';
 
 import { API_BASE_URL } from '../services/api';
 
-const TRANSCRIBE_URL = `${API_BASE_URL}/api/voice/transcribe`;
+const STT_BASE_URL = process.env.REACT_APP_STT_URL || `${API_BASE_URL}`;
+const TRANSCRIBE_URL = `${STT_BASE_URL}/transcribe`;
 
 function pickMimeType() {
   const candidates = [

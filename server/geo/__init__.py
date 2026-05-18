@@ -1,7 +1,13 @@
-"""Geo-сервис: данные из OrbisMap (gis.72to.ru) + spatial-операции + геокодер."""
+"""Гео-модели — общий контракт между монолитом и geo-service.
 
-from geo.geo_service import GeoService, get_geo_service
+Реальная бизнес-логика (запросы к паводок72, геокодинг, spatial) живёт в
+services/geo-service. Здесь — только датаклассы, которые умеют
+сериализоваться/десериализоваться в JSON.
+"""
+
 from geo.models import (
+    FloodCheck,
+    GeoCard,
     HydroPost,
     MapLinks,
     NearestPVR,
@@ -12,8 +18,8 @@ from geo.models import (
 )
 
 __all__ = [
-    "GeoService",
-    "get_geo_service",
+    "FloodCheck",
+    "GeoCard",
     "HydroPost",
     "MapLinks",
     "NearestPVR",

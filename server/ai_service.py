@@ -11,7 +11,8 @@ from agents.rag_agents import BaseRAGAgent, ActionsAgent, DocsAgent, LawAgent, P
 from agents.router_agent import RouterAgent
 from faq_data import get_topic_seed_questions
 from config import Config
-from geo import GeoService, UserContext, UserLocation, get_geo_service
+from geo import UserContext, UserLocation
+from geo_client import GeoHttpClient
 from interfaces import IAIService
 from llm.openrouter_client import OpenRouterClient
 from rag.rag_service import RAGService
@@ -28,12 +29,12 @@ class MultiAgentConsultantService(IAIService):
         config: Config,
         rag_service: RAGService,
         openrouter_client: OpenRouterClient,
-        geo_service: Optional[GeoService] = None,
+        geo_client: GeoHttpClient,
     ) -> None:
         self.config = config
         self.rag_service = rag_service
         self.openrouter_client = openrouter_client
-        self.geo_service = geo_service or get_geo_service()
+        self.geo_client = geo_client
         self.router = RouterAgent(openrouter_client)
         self.agents: Dict[AgentType, Union[BaseRAGAgent, SmallTalkAgent, GeoAgent]] = {
             AgentType.PAYOUTS: PayoutsAgent(rag_service, openrouter_client),
@@ -41,7 +42,7 @@ class MultiAgentConsultantService(IAIService):
             AgentType.LAW: LawAgent(rag_service, openrouter_client),
             AgentType.DOCS: DocsAgent(rag_service, openrouter_client),
             AgentType.SMALLTALK: SmallTalkAgent(openrouter_client),
-            AgentType.GEO: GeoAgent(self.geo_service, openrouter_client),
+            AgentType.GEO: GeoAgent(self.geo_client, openrouter_client),
         }
 
     def validate_configuration(self) -> bool:
@@ -98,7 +99,7 @@ class MultiAgentConsultantService(IAIService):
             user_context = UserContext()
         if user_context.location and user_context.geo_card is None:
             try:
-                user_context.geo_card = self.geo_service.build_geo_card(user_context.location)
+                user_context.geo_card = self.geo_client.build_geo_card(user_context.location)
             except Exception as exc:
                 logger.warning("build_geo_card failed: %s", exc)
         return user_context
