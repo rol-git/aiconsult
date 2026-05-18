@@ -83,18 +83,21 @@ class FloodSupportApp:
         self.jwt = JWTManager(self.app)
 
     def _setup_socketio(self) -> None:
-        """Настраивает WebSocket соединение."""
-        # SocketIO использует тот же Flask app, поэтому работает на том же порту
-        # CORS настроен для разрешения подключений с любого источника
+        """Настраивает WebSocket соединение.
+
+        message_queue=redis даёт pub/sub-адаптер: emit'ы из любого процесса/реплики
+        долетают до всех клиентов, подключённых к любой реплике.
+        """
         self.socketio = SocketIO(
-            self.app,  # Используем тот же Flask app - WebSocket на том же порту
-            cors_allowed_origins="*",  # Разрешаем подключения с любого источника
+            self.app,
+            cors_allowed_origins="*",
             async_mode='threading',
-            logger=True,
-            engineio_logger=True,  # Включаем логирование для отладки
+            logger=False,
+            engineio_logger=False,
             always_connect=True,
             ping_timeout=60,
-            ping_interval=25
+            ping_interval=25,
+            message_queue=self.config.redis_url,
         )
         # Инициализируем обработчики событий
         print("=" * 80)

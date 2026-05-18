@@ -8,11 +8,14 @@ from __future__ import annotations
 
 import logging
 
+from redis import Redis
+
 from ai_service import MultiAgentConsultantService
 from config import Config
 from interfaces import IAIService
 from llm.openrouter_client import OpenRouterClient
 from rag.rag_service import RAGService
+from realtime_state import PresenceStore
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +25,15 @@ class ServiceFactory:
     Фабрика для создания и связывания всех сервисов приложения.
     Централизованное управление зависимостями (IoC Container).
     """
-    
+
     def __init__(self):
         """Инициализация фабрики."""
         self._config: Config = None
         self._rag_service: RAGService | None = None
         self._openrouter_client: OpenRouterClient | None = None
         self._ai_service: IAIService = None
+        self._redis: Redis | None = None
+        self._presence: PresenceStore | None = None
     
     def create_config(self) -> Config:
         """
@@ -93,21 +98,39 @@ class ServiceFactory:
         
         return self._ai_service
     
+    def create_redis(self) -> Redis:
+        """Возвращает синхронный Redis-клиент (singleton)."""
+        if self._redis is None:
+            config = self.create_config()
+            logger.info("Инициализация Redis-клиента: %s", config.redis_url)
+            self._redis = Redis.from_url(config.redis_url, decode_responses=True)
+        return self._redis
+
+    def create_presence_store(self) -> PresenceStore:
+        """Возвращает PresenceStore (singleton)."""
+        if self._presence is None:
+            self._presence = PresenceStore(self.create_redis())
+        return self._presence
+
     def reset(self) -> None:
         """
         Сбрасывает все созданные сервисы.
         Полезно для тестирования или переконфигурации.
         """
         logger.info("Сброс всех сервисов...")
-        
+
         if self._openrouter_client is not None:
             self._openrouter_client.close()
-        
+        if self._redis is not None:
+            self._redis.close()
+
         self._config = None
         self._rag_service = None
         self._openrouter_client = None
         self._ai_service = None
-        
+        self._redis = None
+        self._presence = None
+
         logger.info("Все сервисы сброшены")
 
 
