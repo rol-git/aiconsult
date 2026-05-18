@@ -28,8 +28,11 @@ docker compose exec postgres psql -U aiconsult -d aiconsult
 # Прогнать миграции вручную
 docker compose exec server alembic upgrade head
 
-# Пересобрать индекс RAG (одноразово)
+# Пересобрать pgvector-индекс (одноразово или после обновления docs/)
 docker compose exec server python -m rag.rag_service
+
+# Проверить, что чанки лежат в pgvector
+docker compose exec postgres psql -U aiconsult -d aiconsult -c 'SELECT count(*) FROM public."data_rag_chunks";'
 
 # Остановить
 docker compose down

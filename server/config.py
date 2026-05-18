@@ -39,17 +39,12 @@ class Config:
 
         # RAG / документы
         self.docs_root: Path = Path(os.getenv('DOCS_ROOT', '../docs')).resolve()
-        self.rag_storage_path: Path = Path(
-            os.getenv('RAG_STORAGE_PATH', './storage/index')
-        ).resolve()
-        self.chroma_persist_dir: Path = Path(
-            os.getenv('CHROMA_PERSIST_DIR', './storage/chroma')
-        ).resolve()
-        self.chroma_collection: str = os.getenv('CHROMA_COLLECTION', 'tyumen_rag').strip()
         self.embedding_model_name: str = os.getenv(
             'EMBEDDING_MODEL_NAME',
             'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
         )
+        self.embedding_dim: int = int(os.getenv('EMBEDDING_DIM', 384))
+        self.rag_table_name: str = os.getenv('RAG_TABLE_NAME', 'rag_chunks').strip()
         self.rag_top_k: int = int(os.getenv('RAG_TOP_K', 4))
     
     def validate(self) -> bool:
