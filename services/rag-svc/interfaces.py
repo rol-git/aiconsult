@@ -7,7 +7,7 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Optional
 
-from ai_models import AIResponse
+from agents.base import AIResponse
 
 if TYPE_CHECKING:
     from geo.models import UserContext

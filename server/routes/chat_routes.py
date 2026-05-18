@@ -13,7 +13,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from sqlalchemy import select
 
 from database import get_session
-from agents.base import AgentType, AGENT_LABELS
+from ai_models import AgentType, AGENT_LABELS
 from geo import UserContext, UserLocation
 from models import ChatSession, Message, MessageRAGMeta
 from interfaces import IAIService

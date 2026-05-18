@@ -71,6 +71,37 @@ services:
       retries: 10
       start_period: 15s
 
+  rag-svc:
+    build:
+      context: ../services/rag-svc
+    container_name: aiconsult-rag
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: 5000
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+      GEO_SERVICE_URL: http://geo-service:5000
+      DOCS_ROOT: /app/docs
+    volumes:
+      - ../docs:/app/docs:ro
+    ports:
+      - "${RAG_PORT}:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      geo-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+
   server:
     build:
       context: ../server
@@ -82,14 +113,10 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379/0
-      DOCS_ROOT: /app/docs
-      HF_HOME: /app/storage/hf
       SERVER_PORT: 5000
       GEO_SERVICE_URL: http://geo-service:5000
       STT_SERVICE_URL: http://stt-service:5000
-    volumes:
-      - ../docs:/app/docs:ro
-      - server_storage:/app/storage
+      RAG_SERVICE_URL: http://rag-svc:5000
     ports:
       - "${SERVER_PORT}:5000"
     depends_on:
@@ -101,14 +128,15 @@ services:
         condition: service_started
       stt-service:
         condition: service_started
+      rag-svc:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:5000/api/health"]
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 240s
+      start_period: 30s
 
 volumes:
   postgres_data:
   redis_data:
-  server_storage:

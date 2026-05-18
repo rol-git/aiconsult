@@ -1,8 +1,11 @@
-"""Список часто задаваемых вопросов для эндпоинта /api/faq.
-
-Поисковая логика и подбор подсказок переехали в rag-svc; здесь — только
-статический список для UI.
 """
+Набор часто задаваемых вопросов по ЧС и помощь вспомогательными подсказками.
+"""
+
+from __future__ import annotations
+
+import random
+from typing import List, Optional
 
 FAQ_ITEMS = [
     {"question": "Какие выплаты положены пострадавшим от паводка?", "tags": ["payouts"]},
@@ -20,3 +23,28 @@ FAQ_ITEMS = [
     {"question": "Сколько ждать выплату после подачи заявления?", "tags": ["payouts"]},
     {"question": "Кто имеет право на материальную помощь?", "tags": ["payouts", "law"]},
 ]
+
+TOPIC_SEED_QUESTIONS = [
+    {"label": "Выплаты", "question": "Какие выплаты положены при затоплении?", "tags": ["payouts"]},
+    {"label": "Действия", "question": "Что делать при угрозе подтопления?", "tags": ["actions"]},
+    {"label": "Законы", "question": "Какие законы регулируют компенсации?", "tags": ["law"]},
+    {"label": "Документы", "question": "Какие документы нужны для выплаты?", "tags": ["docs"]},
+]
+
+
+def get_faq_questions(tags: Optional[List[str]] = None, limit: int = 3) -> List[str]:
+    items = FAQ_ITEMS
+    if tags:
+        normalized_tags = set(tags)
+        items = [item for item in FAQ_ITEMS if normalized_tags.intersection(item["tags"])]
+    if not items:
+        items = FAQ_ITEMS
+    items = items.copy()
+    random.shuffle(items)
+    return [item["question"] for item in items[:limit]]
+
+
+def get_topic_seed_questions() -> List[str]:
+    # В UI кнопок-подсказок показываем только сам вопрос (без префиксов "тема: ...").
+    return [item["question"] for item in TOPIC_SEED_QUESTIONS]
+

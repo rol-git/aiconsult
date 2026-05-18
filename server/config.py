@@ -27,6 +27,7 @@ class Config:
         self.redis_url: str = os.getenv('REDIS_URL', 'redis://localhost:6379/0').strip()
         self.geo_service_url: str = os.getenv('GEO_SERVICE_URL', 'http://localhost:5010').strip()
         self.stt_service_url: str = os.getenv('STT_SERVICE_URL', 'http://localhost:5020').strip()
+        self.rag_service_url: str = os.getenv('RAG_SERVICE_URL', 'http://localhost:5030').strip()
         self.jwt_secret_key: str = os.getenv('JWT_SECRET_KEY', 'super-secret-key')
         self.jwt_expires_minutes: int = int(os.getenv('JWT_EXPIRES_MINUTES', 60 * 24))
 
@@ -52,22 +53,22 @@ class Config:
     def validate(self) -> bool:
         """
         Валидация конфигурации.
-        
+
         Returns:
             bool: True если конфигурация валидна
-            
+
         Raises:
             ValueError: Если обязательные параметры отсутствуют
         """
-        if not self.openrouter_api_key:
-            raise ValueError("OPENROUTER_API_KEY не установлен в переменных окружения")
-        
         if not self.database_url:
             raise ValueError("DATABASE_URL не указан в переменных окружения")
-        
+
+        if not self.rag_service_url:
+            raise ValueError("RAG_SERVICE_URL не указан в переменных окружения")
+
         if self.server_port < 1 or self.server_port > 65535:
             raise ValueError(f"Неверный порт сервера: {self.server_port}")
-        
+
         return True
     
     def __repr__(self) -> str:
