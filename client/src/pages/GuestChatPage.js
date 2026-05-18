@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import ChatHistory from '../components/ChatHistory';
+import GeoBanner from '../components/GeoBanner';
 import QuestionForm from '../components/QuestionForm';
+import { useGeo } from '../context/GeoContext';
 import { apiRequest } from '../services/api';
 import FaqPage from './FaqPage';
 
@@ -17,6 +19,7 @@ const GuestChatPage = () => {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
   const [faqVisible, setFaqVisible] = useState(false);
+  const { locationPayload } = useGeo();
 
   const handleSubmit = async (content) => {
     if (!content.trim() || isSending) {
@@ -29,9 +32,11 @@ const GuestChatPage = () => {
     setError('');
 
     try {
+      const body = { question: content.trim() };
+      if (locationPayload) body.location = locationPayload;
       const data = await apiRequest('/api/ask', {
         method: 'POST',
-        body: { question: content.trim() },
+        body,
       });
 
       const assistantMessage = createMessage(
@@ -79,6 +84,7 @@ const GuestChatPage = () => {
 
       <section className="workspace__content">
         <div className="workspace__messages">
+          <GeoBanner />
           <ChatHistory
             messages={messages}
             isLoading={false}

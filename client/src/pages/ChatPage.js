@@ -1,14 +1,17 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useGeo } from '../context/GeoContext';
 import { apiRequest } from '../services/api';
 import { initSocket, getSocket, joinChat, leaveChat } from '../services/socket';
 import ChatHistory from '../components/ChatHistory';
+import GeoBanner from '../components/GeoBanner';
 import QuestionForm from '../components/QuestionForm';
 import HistoryPage from './HistoryPage';
 import FaqPage from './FaqPage';
 
 const ChatPage = () => {
   const { user, token } = useAuth();
+  const { locationPayload } = useGeo();
   const [chats, setChats] = useState([]);
   const [activeChatId, setActiveChatId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -385,9 +388,11 @@ const ChatPage = () => {
     setError('');
 
     try {
+      const body = { content };
+      if (locationPayload) body.location = locationPayload;
       const data = await apiRequest(`/api/chats/${activeChatId}/messages`, {
         method: 'POST',
-        body: { content },
+        body,
         token,
       });
 
@@ -634,6 +639,7 @@ const ChatPage = () => {
 
       <section className="workspace__content">
         <div className="workspace__messages">
+          <GeoBanner />
           <ChatHistory
             messages={messages}
             isLoading={isMessagesLoading}

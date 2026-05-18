@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import random
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from agents.base import (
     AGENT_FOLLOWUPS,
@@ -19,6 +19,9 @@ from agents.base import (
 from faq_data import get_faq_questions, get_topic_seed_questions
 from llm.openrouter_client import OpenRouterClient
 from rag.rag_service import RAGChunk, RAGService
+
+if TYPE_CHECKING:
+    from geo.models import UserContext
 
 
 logger = logging.getLogger(__name__)
@@ -40,8 +43,8 @@ class BaseRAGAgent:
         self.client = client
         self.answer_style = answer_style
 
-    def _build_system_prompt(self) -> str:
-        return (
+    def _build_system_prompt(self, user_context: Optional["UserContext"] = None) -> str:
+        base = (
             f"Ты консультант по вопросам ЧС в Тюменской области и РФ. "
             f"{self.answer_style.strip()} "
             "Отвечай уверенно, чётко и по делу. "
@@ -49,6 +52,14 @@ class BaseRAGAgent:
             "Просто давай полезный ответ пользователю как эксперт. "
             "Оформляй ответ на русском языке в формате Markdown."
         )
+        if user_context and user_context.geo_card is not None:
+            base += (
+                "\n\n"
+                + user_context.geo_card.to_prompt_block()
+                + "\n\nЕсли вопрос пользователя касается геопозиции или ближайших объектов, "
+                "опирайся на этот гео-контекст и буквально приводи маршрутные ссылки из него."
+            )
+        return base
 
     def _build_user_prompt(self, question: str, chunks: List[RAGChunk], history: Optional[str]) -> str:
         context_blocks = []
@@ -80,11 +91,17 @@ class BaseRAGAgent:
             sources.append(AISource(document=chunk.document, location=chunk.location, excerpt=excerpt))
         return sources
 
-    def run(self, question: str, *, history: Optional[str] = None) -> AIResponse:
+    def run(
+        self,
+        question: str,
+        *,
+        history: Optional[str] = None,
+        user_context: Optional["UserContext"] = None,
+    ) -> AIResponse:
         chunks = self.rag_service.retrieve(question, agent_hint=AGENT_HINTS[self.agent_type])
-        
+
         user_prompt = self._build_user_prompt(question, chunks, history)
-        
+
         if chunks:
             needs_context, reason = self._needs_more_context(question, chunks)
             if needs_context:
@@ -93,10 +110,10 @@ class BaseRAGAgent:
                     "\n\nЕсли данных недостаточно, в конце ответа мягко попроси пользователя предоставить: "
                     f"{hint}. Оформи это как один уточняющий вопрос."
                 )
-        
+
         answer = self.client.complete(
             [
-                {"role": "system", "content": self._build_system_prompt()},
+                {"role": "system", "content": self._build_system_prompt(user_context=user_context)},
                 {"role": "user", "content": user_prompt},
             ],
             temperature=0.1,
@@ -348,7 +365,13 @@ class SmallTalkAgent:
         self.agent_type = AgentType.SMALLTALK
         self.client = client
 
-    def run(self, question: str, history: Optional[str] = None) -> AIResponse:
+    def run(
+        self,
+        question: str,
+        history: Optional[str] = None,
+        *,
+        user_context: Optional["UserContext"] = None,
+    ) -> AIResponse:
         answer = self._generate_response(question, history)
         if self._is_first_turn(history):
             suggestions = get_topic_seed_questions()

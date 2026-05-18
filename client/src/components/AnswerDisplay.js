@@ -1,6 +1,16 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import './AnswerDisplay.css';
+
+const MD_COMPONENTS = {
+  a: ({ node, children, ...props }) => (
+    <a {...props} target="_blank" rel="noopener noreferrer">
+      {children}
+    </a>
+  ),
+};
+const MD_PLUGINS = [remarkGfm];
 
 function AnswerDisplay({ answer, isLoading, error }) {
   if (isLoading) {
@@ -29,7 +39,9 @@ function AnswerDisplay({ answer, isLoading, error }) {
           <h3>Ответ консультанта:</h3>
         </div>
         <div className="answer-content markdown-content">
-          <ReactMarkdown>{answer}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={MD_PLUGINS} components={MD_COMPONENTS}>
+            {answer}
+          </ReactMarkdown>
         </div>
       </div>
     );

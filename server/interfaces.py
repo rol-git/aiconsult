@@ -5,9 +5,12 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from agents.base import AIResponse
+
+if TYPE_CHECKING:
+    from geo.models import UserContext
 
 
 class IAIService(ABC):
@@ -15,21 +18,24 @@ class IAIService(ABC):
     Интерфейс для AI сервиса.
     Позволяет заменять ChatGPT на другие AI (Claude, Gemini и т.д.)
     """
-    
+
     @abstractmethod
-    def generate_answer(self, question: str, context: Optional[str] = None) -> AIResponse:
+    def generate_answer(
+        self,
+        question: str,
+        context: Optional[str] = None,
+        user_context: Optional["UserContext"] = None,
+    ) -> AIResponse:
         """
-        Генерирует ответ на вопрос с учетом контекста.
-        
+        Генерирует ответ на вопрос с учётом истории и гео-контекста.
+
         Args:
             question: Вопрос пользователя
-            context: Контекст (опционально)
-            
+            context: История диалога (опционально)
+            user_context: UserContext с гео-данными и адресом (опционально)
+
         Returns:
             AIResponse: Сгенерированный ответ с метаданными
-            
-        Raises:
-            Exception: Если произошла ошибка при генерации
         """
         pass
     

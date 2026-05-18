@@ -1,6 +1,16 @@
 import React, { useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import './ChatHistory.css';
+
+const MD_COMPONENTS = {
+  a: ({ node, children, ...props }) => (
+    <a {...props} target="_blank" rel="noopener noreferrer">
+      {children}
+    </a>
+  ),
+};
+const MD_PLUGINS = [remarkGfm];
 
 const formatTime = (value) => {
   try {
@@ -60,7 +70,9 @@ function ChatHistory({ messages, isLoading, isSending, onSuggestionSelect, onReq
             </div>
             <div className="bubble-body">
               {isAssistant ? (
-                <ReactMarkdown>{message.content}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={MD_PLUGINS} components={MD_COMPONENTS}>
+                  {message.content}
+                </ReactMarkdown>
               ) : (
                 <p>{message.content}</p>
               )}

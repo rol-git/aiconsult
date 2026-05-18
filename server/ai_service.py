@@ -1,15 +1,17 @@
-"""Мультиагентный AI сервис на базе RAG и OpenRouter."""
+"""Мультиагентный AI сервис на базе RAG, OpenRouter и GeoService."""
 
 from __future__ import annotations
 
 import logging
 from typing import Dict, Iterable, List, Optional, Union
 
-from agents.base import AgentType, AIResponse
+from agents.base import AGENT_LABELS, AgentType, AIResponse
+from agents.geo_agent import GeoAgent
 from agents.rag_agents import BaseRAGAgent, ActionsAgent, DocsAgent, LawAgent, PayoutsAgent, SmallTalkAgent
 from agents.router_agent import RouterAgent
 from faq_data import get_topic_seed_questions
 from config import Config
+from geo import GeoService, UserContext, UserLocation, get_geo_service
 from interfaces import IAIService
 from llm.openrouter_client import OpenRouterClient
 from rag.rag_service import RAGService
@@ -26,31 +28,39 @@ class MultiAgentConsultantService(IAIService):
         config: Config,
         rag_service: RAGService,
         openrouter_client: OpenRouterClient,
+        geo_service: Optional[GeoService] = None,
     ) -> None:
         self.config = config
         self.rag_service = rag_service
         self.openrouter_client = openrouter_client
+        self.geo_service = geo_service or get_geo_service()
         self.router = RouterAgent(openrouter_client)
-        self.agents: Dict[AgentType, Union[BaseRAGAgent, SmallTalkAgent]] = {
+        self.agents: Dict[AgentType, Union[BaseRAGAgent, SmallTalkAgent, GeoAgent]] = {
             AgentType.PAYOUTS: PayoutsAgent(rag_service, openrouter_client),
             AgentType.ACTIONS: ActionsAgent(rag_service, openrouter_client),
             AgentType.LAW: LawAgent(rag_service, openrouter_client),
             AgentType.DOCS: DocsAgent(rag_service, openrouter_client),
             AgentType.SMALLTALK: SmallTalkAgent(openrouter_client),
+            AgentType.GEO: GeoAgent(self.geo_service, openrouter_client),
         }
 
     def validate_configuration(self) -> bool:
-        """Проверяем, что все ключи заданы."""
         return self.config.validate()
 
-    def generate_answer(self, question: str, context: Optional[str] = None) -> AIResponse:
+    def generate_answer(
+        self,
+        question: str,
+        context: Optional[str] = None,
+        user_context: Optional[UserContext] = None,
+    ) -> AIResponse:
         """
         Определяет подходящих агентов, собирает их ответы и возвращает объединённый результат.
         """
-        # Сначала проверяем маршрут - smalltalk не требует валидации
+        # Гарантируем UserContext и подгружаем гео-карточку, если есть координаты
+        user_context = self._prepare_user_context(user_context)
+
         selected_agents = self.router.route(question, context)
-        
-        # Если это не smalltalk, проверяем валидность вопроса
+
         if AgentType.SMALLTALK not in selected_agents and not self.router.is_valid_question(question):
             seeds = get_topic_seed_questions()
             return AIResponse(
@@ -69,77 +79,70 @@ class MultiAgentConsultantService(IAIService):
             if not agent:
                 logger.warning("Агент %s не найден в конфигурации", agent_type)
                 continue
-            results.append(agent.run(question, history=context))
+            try:
+                results.append(self._run_agent(agent, agent_type, question, context, user_context))
+            except Exception as exc:
+                logger.exception("Агент %s упал: %s", agent_type, exc)
 
         if not results:
             raise RuntimeError("Не удалось подобрать подходящего агента для обработки запроса")
 
-        merged_response = self._merge_results(results)
-        
-        # Проверяем, нужна ли помощь оператора
+        merged_response = self._merge_results(results, question)
         merged_response.suggest_operator = self._should_suggest_operator(question, context, merged_response)
-        
         return merged_response
-    
+
+    # ---------- внутренности ----------
+
+    def _prepare_user_context(self, user_context: Optional[UserContext]) -> UserContext:
+        if user_context is None:
+            user_context = UserContext()
+        if user_context.location and user_context.geo_card is None:
+            try:
+                user_context.geo_card = self.geo_service.build_geo_card(user_context.location)
+            except Exception as exc:
+                logger.warning("build_geo_card failed: %s", exc)
+        return user_context
+
+    def _run_agent(
+        self,
+        agent,
+        agent_type: AgentType,
+        question: str,
+        context: Optional[str],
+        user_context: UserContext,
+    ) -> AIResponse:
+        if agent_type == AgentType.SMALLTALK:
+            return agent.run(question, context, user_context=user_context)
+        if agent_type == AgentType.GEO:
+            return agent.run(question, history=context, user_context=user_context)
+        return agent.run(question, history=context, user_context=user_context)
+
     def _should_suggest_operator(self, question: str, context: Optional[str], response: AIResponse) -> bool:
-        """
-        Определяет, нужно ли предложить пользователю связаться с оператором.
-        """
-        # Ключевые фразы, указывающие на необходимость оператора
         operator_keywords = [
-            "не могу найти",
-            "не понимаю",
-            "не получается",
-            "помогите",
-            "срочно",
-            "жалоба",
-            "не отвечают",
-            "не помогают",
-            "обман",
-            "мошенничество",
-            "нарушение",
-            "незаконно",
-            "требую",
-            "прокуратура",
-            "суд",
-            "оператор",
-            "человек",
-            "живой человек",
-            "специалист",
+            "не могу найти", "не понимаю", "не получается", "помогите", "срочно",
+            "жалоба", "не отвечают", "не помогают", "обман", "мошенничество",
+            "нарушение", "незаконно", "требую", "прокуратура", "суд",
+            "оператор", "человек", "живой человек", "специалист",
         ]
-        
         question_lower = question.lower()
-        
-        # Проверяем наличие ключевых слов в вопросе
         has_operator_keywords = any(keyword in question_lower for keyword in operator_keywords)
-        
-        # Проверяем контекст - если пользователь задает много вопросов подряд
+
         repeated_questions = False
         if context:
-            context_lower = context.lower()
-            # Считаем количество вопросительных знаков в истории
-            question_count = context_lower.count("?")
+            question_count = context.lower().count("?")
             repeated_questions = question_count >= 3
-        
-        # Проверяем, если ответ содержит "need_more_context"
+
         needs_clarification = response.notes == "need_more_context"
-        
-        # Предлагаем оператора, если:
-        # 1. Есть ключевые слова И нужны уточнения
-        # 2. Пользователь задал много вопросов подряд
-        # 3. Явный запрос на оператора
+
         if "оператор" in question_lower or "человек" in question_lower or "специалист" in question_lower:
             return True
-        
         if has_operator_keywords and needs_clarification:
             return True
-            
         if repeated_questions and needs_clarification:
             return True
-        
         return False
 
-    def _merge_results(self, responses: Iterable[AIResponse]) -> AIResponse:
+    def _merge_results(self, responses: Iterable[AIResponse], question: str) -> AIResponse:
         responses = list(responses)
         if len(responses) == 1:
             return responses[0]
@@ -150,6 +153,8 @@ class MultiAgentConsultantService(IAIService):
         unique_agent_types = list(dict.fromkeys(agent_types))
 
         suggestions = self._merge_suggestions(responses)
+        merged_sources = self._merge_sources(responses)
+        any_suggest_operator = any(r.suggest_operator for r in responses)
 
         if all(response.notes == "need_more_context" for response in responses):
             combined = self._merge_clarification_answers(responses)
@@ -161,12 +166,8 @@ class MultiAgentConsultantService(IAIService):
                 suggested_questions=suggestions,
             )
 
-        merged_sources = self._merge_sources(responses)
-        combined_answer = "\n\n".join(response.answer.strip() for response in responses)
-        
-        # Проверяем, предлагал ли хоть один агент оператора
-        any_suggest_operator = any(r.suggest_operator for r in responses)
-        
+        combined_answer = self._synthesize_answers(question, responses)
+
         return AIResponse(
             answer=combined_answer,
             agent_types=unique_agent_types,
@@ -174,6 +175,40 @@ class MultiAgentConsultantService(IAIService):
             suggested_questions=suggestions,
             suggest_operator=any_suggest_operator,
         )
+
+    def _synthesize_answers(self, question: str, responses: List[AIResponse]) -> str:
+        """LLM-синтез: сшиваем ответы нескольких агентов в один связный текст."""
+        try:
+            sections = []
+            for r in responses:
+                labels = ", ".join(AGENT_LABELS.get(t, t.value) for t in r.agent_types) or "консультант"
+                sections.append(f"### Ответ агента «{labels}»\n{r.answer.strip()}")
+            joined = "\n\n".join(sections)
+            system = (
+                "Ты — финальный редактор ответов мультиагентной системы для жителей Тюменской области. "
+                "Тебе дают несколько фрагментов ответа от разных агентов (выплаты, действия, документы, гео и т.п.). "
+                "Сшей их в ОДИН связный ответ на русском в Markdown:\n"
+                "  - Убери дубли и противоречия (выбирай более конкретное утверждение).\n"
+                "  - Сохрани все маршрутные ссылки и контакты ДОСЛОВНО (Яндекс.Карты / 2ГИС / телефоны).\n"
+                "  - Структура свободная, но без меток вроде «Агент X сказал».\n"
+                "  - Если в фрагментах есть просьба разрешить геолокацию — мягко повтори её в финале.\n"
+                "  - Объём — не больше 12 абзацев, без лишней воды."
+            )
+            user_msg = (
+                f"Исходный вопрос пользователя:\n{question.strip()}\n\n"
+                f"Фрагменты ответов агентов:\n{joined}\n\n"
+                "Верни единый итоговый ответ."
+            )
+            return self.openrouter_client.complete(
+                [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user_msg},
+                ],
+                temperature=0.2,
+            ).strip()
+        except Exception as exc:
+            logger.warning("LLM-синтез не удался, делаю простой merge: %s", exc)
+            return "\n\n".join(r.answer.strip() for r in responses)
 
     def _merge_sources(self, responses: Iterable[AIResponse]):
         seen = set()
@@ -208,5 +243,3 @@ class MultiAgentConsultantService(IAIService):
                 if len(collected) >= 4:
                     return collected
         return collected
-
-

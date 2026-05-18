@@ -14,6 +14,7 @@ from sqlalchemy import select
 
 from database import get_session
 from agents.base import AgentType, AGENT_LABELS
+from geo import UserContext, UserLocation
 from models import ChatSession, Message, MessageRAGMeta
 from interfaces import IAIService
 
@@ -64,6 +65,23 @@ def build_context(messages: list[Message], limit: int = 10) -> Optional[str]:
         author = "Пользователь" if item.role == "user" else "Консультант"
         history.append(f"{author}: {item.content}")
     return "История диалога:\n" + "\n".join(history)
+
+
+def parse_user_context(payload: dict) -> UserContext:
+    """Достать location из payload запроса /api/chats/<id>/messages."""
+    loc_raw = payload.get("location") if isinstance(payload, dict) else None
+    location: Optional[UserLocation] = None
+    if isinstance(loc_raw, dict):
+        try:
+            lat = float(loc_raw.get("lat"))
+            lon = float(loc_raw.get("lon"))
+            acc = loc_raw.get("accuracy")
+            acc_f = float(acc) if acc is not None else None
+            source = str(loc_raw.get("source") or "browser")
+            location = UserLocation(lat=lat, lon=lon, accuracy_m=acc_f, source=source)
+        except (TypeError, ValueError):
+            location = None
+    return UserContext(location=location)
 
 
 def create_chat_blueprint(ai_service: IAIService) -> Blueprint:
@@ -171,9 +189,10 @@ def create_chat_blueprint(ai_service: IAIService) -> Blueprint:
 
         ai_response = None
         context = build_context(chat.messages + [user_message])
+        user_context = parse_user_context(payload)
 
         try:
-            ai_response = ai_service.generate_answer(content, context=context)
+            ai_response = ai_service.generate_answer(content, context=context, user_context=user_context)
         except Exception as exc:
             session.rollback()
             return jsonify({"success": False, "error": str(exc)}), 500

@@ -44,6 +44,36 @@ KEYWORDS = {
         "шаблон",
         "как написать",
     ],
+    AgentType.GEO: [
+        "ближайш",
+        "где наход",
+        " пвр",
+        "пвр?",
+        "пвр.",
+        "пункт временного",
+        "временного размещ",
+        "затоплен",
+        "подтоплен",
+        "зон",
+        "затопит",
+        "маршрут",
+        "как доехать",
+        "как добраться",
+        "карт",
+        "рядом со мной",
+        "у меня дом",
+        "наш район",
+        "перекрыт",
+        "перекрытие дорог",
+        "гидропост",
+        "уровень воды",
+        "от меня",
+        "расстояни",
+        "сколько км",
+        "сколько метр",
+        "адрес",
+        "улиц",
+    ],
 }
 
 SMALLTALK_PATTERNS = [
@@ -126,7 +156,7 @@ class RouterAgent:
             if any(token in normalized for token in tokens):
                 matches.append(agent)
         if matches:
-            return matches[:2]
+            return matches[:3]
         return self._route_with_llm(question, history)
 
     def _is_smalltalk(self, text: str) -> bool:
@@ -151,11 +181,15 @@ class RouterAgent:
             "role": "user",
             "content": (
                 "Тебе нужно определить, каким специализированным консультантам передать запрос.\n"
+                "Если вопрос содержит несколько тем — выбери несколько категорий.\n"
+                "Если в вопросе есть пространственный/геоаспект (ближайший ПВР, моя зона риска, "
+                "перекрытия рядом, расстояние, маршрут, упоминание адреса/района) — обязательно "
+                "включи geo.\n"
                 f"История (может отсутствовать): {history or 'нет'}\n"
                 f"Запрос: {question.strip()}\n\n"
                 "Доступные категории: "
                 + ", ".join(f"{agent.value}:{AGENT_LABELS[agent]}" for agent in AgentType)
-                + ". Верни JSON вида {\"categories\": [\"payouts\", ...]} только по списку."
+                + '. Верни JSON вида {"categories": ["payouts", "geo"]} только из списка.'
             ),
         }
         response = self.client.complete(
@@ -163,8 +197,8 @@ class RouterAgent:
                 {
                     "role": "system",
                     "content": (
-                        "Ты маршрутизатор запросов для ИИ консультанта по ЧС. "
-                        "Выбирай 1-2 категории из списка и отвечай строго валидным JSON."
+                        "Ты маршрутизатор запросов для ИИ-консультанта по ЧС в Тюменской области. "
+                        "Выбирай 1-3 категории из списка и отвечай строго валидным JSON."
                     ),
                 },
                 user_prompt,
@@ -181,12 +215,15 @@ class RouterAgent:
             if isinstance(values, list):
                 categories = self._normalize_list(values)
         except json.JSONDecodeError:
-            pattern = re.compile(r"(payouts|actions_now|law_explanations|docs_help)", re.IGNORECASE)
+            pattern = re.compile(
+                r"(payouts|actions_now|law_explanations|docs_help|geo|small_talk)",
+                re.IGNORECASE,
+            )
             categories = self._normalize_list(pattern.findall(raw))
 
         if not categories:
             categories = [AgentType.LAW]
-        return categories[:2]
+        return categories[:3]
 
     def _normalize_list(self, values) -> List[AgentType]:
         normalized: List[AgentType] = []
@@ -204,6 +241,10 @@ class RouterAgent:
                     "payments": AgentType.PAYOUTS,
                     "smalltalk": AgentType.SMALLTALK,
                     "small_talk": AgentType.SMALLTALK,
+                    "geolocation": AgentType.GEO,
+                    "location": AgentType.GEO,
+                    "map": AgentType.GEO,
+                    "pvr": AgentType.GEO,
                 }
                 if key in mapping:
                     normalized.append(mapping[key])

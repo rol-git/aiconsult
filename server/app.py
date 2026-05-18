@@ -13,9 +13,11 @@ from flask_socketio import SocketIO
 
 from database import Base, init_engine, remove_session
 from interfaces import IAIService
+from geo import UserContext, UserLocation
 from routes.auth_routes import create_auth_blueprint
 from routes.chat_routes import create_chat_blueprint
 from routes.faq_routes import create_faq_blueprint
+from routes.geo_routes import create_geo_blueprint
 from routes.support_routes import create_support_blueprint
 from routes.voice_routes import create_voice_blueprint
 from service_factory import get_service_factory
@@ -112,6 +114,22 @@ class FloodSupportApp:
         self.app.register_blueprint(create_faq_blueprint())
         self.app.register_blueprint(create_support_blueprint())
         self.app.register_blueprint(create_voice_blueprint())
+        self.app.register_blueprint(create_geo_blueprint())
+        self._prewarm_geo_async()
+
+    def _prewarm_geo_async(self) -> None:
+        """Фоном грузим ПВР-слой, чтобы первый запрос пользователя был быстрым."""
+        import threading
+        from geo import get_geo_service
+
+        def _worker() -> None:
+            try:
+                get_geo_service().prewarm()
+                logger.info("Geo prewarm: ПВР-слой прогрет")
+            except Exception as exc:
+                logger.warning("Geo prewarm failed: %s", exc)
+
+        threading.Thread(target=_worker, daemon=True, name="geo-prewarm").start()
     
     def ask_question(self):
         """
@@ -131,9 +149,11 @@ class FloodSupportApp:
             
             question = data['question']
             logger.info(f"Получен вопрос: {question[:100]}...")
-            
+
+            user_context = self._parse_user_context(data)
+
             # Генерируем ответ через AI сервис (DIP - зависимость от абстракции)
-            ai_response = self.ai_service.generate_answer(question)
+            ai_response = self.ai_service.generate_answer(question, user_context=user_context)
             
             logger.info("Ответ успешно сгенерирован")
             
@@ -169,8 +189,24 @@ class FloodSupportApp:
         
         if len(question) > 5000:
             return {'error': 'Вопрос слишком длинный (макс. 5000 символов)', 'success': False}
-        
+
         return None
+
+    def _parse_user_context(self, data: dict) -> UserContext:
+        """Достаём location из payload (используется в /api/ask)."""
+        loc_raw = data.get("location") if isinstance(data, dict) else None
+        location = None
+        if isinstance(loc_raw, dict):
+            try:
+                lat = float(loc_raw.get("lat"))
+                lon = float(loc_raw.get("lon"))
+                acc = loc_raw.get("accuracy")
+                acc_f = float(acc) if acc is not None else None
+                source = str(loc_raw.get("source") or "browser")
+                location = UserLocation(lat=lat, lon=lon, accuracy_m=acc_f, source=source)
+            except (TypeError, ValueError):
+                location = None
+        return UserContext(location=location)
     
     def health_check(self):
         """
