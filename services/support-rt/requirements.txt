@@ -1,0 +1,9 @@
+Flask==3.0.0
+flask-cors==4.0.0
+flask-socketio==5.3.6
+python-socketio==5.11.1
+python-dotenv==1.0.0
+SQLAlchemy==2.0.23
+psycopg[binary]==3.1.12
+Flask-JWT-Extended==4.6.0
+redis==5.0.7

@@ -178,24 +178,19 @@ def create_support_blueprint() -> Blueprint:
         session.add(system_message)
         session.commit()
         
-        # Отправляем системное сообщение через WebSocket и уведомляем о решении тикета
+        # Уведомляем клиентов о новом системном сообщении и закрытии тикета
+        # через socket_publisher (write-only канал в Redis → support-rt → клиент)
         try:
-            from socket_events import notify_ticket_resolved
-            # Отправляем системное сообщение через WebSocket
+            import socket_publisher
             from routes.chat_routes import serialize_message
             message_data = serialize_message(system_message)
             message_data['chatId'] = chat_id
-            
-            from socket_events import socketio
-            socketio.emit('new_message', message_data, room=f"chat_{chat_id}")
-            
-            # Уведомляем о решении тикета
-            notify_ticket_resolved(chat_id)
+            socket_publisher.emit('new_message', message_data, room=f"chat_{chat_id}")
+            socket_publisher.emit('ticket_resolved', {'chatId': chat_id}, room=f"chat_{chat_id}")
         except Exception as e:
-            # Если WebSocket недоступен, просто логируем ошибку
             import logging
             logger = logging.getLogger(__name__)
-            logger.warning(f"Could not send WebSocket notification for resolved ticket: {e}")
+            logger.warning(f"Could not publish ticket-resolved notification: {e}")
 
         return jsonify({"success": True, "ticket": serialize_support_chat(ticket.chat, ticket)}), 200
 
@@ -348,10 +343,10 @@ def create_support_blueprint() -> Blueprint:
     @bp.route("/online-operators", methods=["GET"])
     @jwt_required()
     def check_online_operators():
-        """Проверить наличие онлайн операторов."""
-        from socket_events import get_online_operators
-        
-        online_operator_ids = get_online_operators()
+        """Проверить наличие онлайн операторов (читаем presence из Redis)."""
+        from service_factory import get_service_factory
+        presence = get_service_factory().create_presence_store()
+        online_operator_ids = presence.online_users("support")
         operators_count = len(online_operator_ids)
 
         return jsonify({
