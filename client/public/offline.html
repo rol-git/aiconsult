@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Нет сети — ЧС-консультант</title>
+  <style>
+    body { font-family: -apple-system, system-ui, Segoe UI, Roboto, sans-serif; margin: 0; padding: 24px; color: #1a2330; background: #f4f7fb; }
+    .card { max-width: 480px; margin: 32px auto; background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+    h1 { font-size: 20px; margin-top: 0; color: #0077be; }
+    .phones { background: #f8fafd; border-left: 3px solid #0077be; padding: 12px 16px; border-radius: 6px; margin: 16px 0; }
+    .phones a { color: #0077be; text-decoration: none; font-weight: 600; }
+    .muted { color: #6b7785; font-size: 14px; }
+    button { background: #0077be; color: #fff; border: 0; padding: 10px 20px; border-radius: 8px; font-size: 15px; cursor: pointer; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Нет интернет-соединения</h1>
+    <p>Чат и карта временно недоступны. Ниже — экстренные телефоны Тюменской области, по ним можно позвонить без интернета.</p>
+
+    <div class="phones">
+      <p><strong>Единый телефон ЕДДС:</strong> <a href="tel:112">112</a></p>
+      <p><strong>МЧС Тюменской области:</strong> <a href="tel:+73452909101">+7 (3452) 909-101</a></p>
+      <p><strong>Горячая линия по ЧС:</strong> <a href="tel:88001000000">8 (800) 100-00-00</a></p>
+    </div>
+
+    <p class="muted">Когда связь восстановится, страница обновится автоматически. Можно также нажать кнопку ниже.</p>
+    <button onclick="location.reload()">Попробовать снова</button>
+  </div>
+</body>
+</html>

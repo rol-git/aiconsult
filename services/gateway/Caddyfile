@@ -1,0 +1,55 @@
+# Gateway (Caddy 2) для AI-консультанта.
+#
+# В dev — http://localhost:${GATEWAY_PORT}. В prod указать домен сверху ({$DOMAIN})
+# и Caddy сам получит TLS у Let's Encrypt.
+#
+# Маршрутизация:
+#   /api/*        → chat-api    (HTTP REST)
+#   /socket.io/*  → support-rt  (WebSocket; sticky-сессии через ip_hash)
+#   /geo/*        → geo-service (HTTP, паводок72 + Nominatim)
+#   /stt/*        → stt-service (HTTP, Yandex SpeechKit)
+#   /rag/*        → rag-svc     (HTTP, прямой доступ — обычно через chat-api)
+#   /             → опционально клиент-статика (если поднят отдельный сервис)
+
+{$SITE_ADDRESS:http://:80} {
+    encode gzip
+
+    # WebSocket для support-rt. Caddy сам поднимает Upgrade-handshake.
+    @ws path /socket.io* /socket.io/*
+    handle @ws {
+        reverse_proxy support-rt:5000 {
+            lb_policy ip_hash
+        }
+    }
+
+    @api path /api/*
+    handle @api {
+        reverse_proxy chat-api:5000
+    }
+
+    @geo path /geo/*
+    handle @geo {
+        uri strip_prefix /geo
+        reverse_proxy geo-service:5000
+    }
+
+    @stt path /stt/*
+    handle @stt {
+        uri strip_prefix /stt
+        reverse_proxy stt-service:5000
+    }
+
+    @rag path /rag/*
+    handle @rag {
+        uri strip_prefix /rag
+        reverse_proxy rag-svc:5000
+    }
+
+    handle /health {
+        respond "gateway-ok" 200
+    }
+
+    handle {
+        respond "Not Found" 404
+    }
+}
