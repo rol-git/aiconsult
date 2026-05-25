@@ -163,7 +163,7 @@ def init_socketio(app, socketio_instance: SocketIO):
             session.commit()
             session.refresh(message)
 
-            from routes.chat_routes import serialize_message
+            from serializers import serialize_message
             payload = serialize_message(message)
             payload['senderName'] = user.name
             payload['chatId'] = chat_id

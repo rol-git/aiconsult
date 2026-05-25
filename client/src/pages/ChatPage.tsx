@@ -8,7 +8,7 @@ import {
   getChat,
   sendMessage,
 } from '@/api/chats';
-import { getMyTicket, requestSupport } from '@/api/support';
+import { getMyTicket, getTicketThread, requestSupport } from '@/api/support';
 import { HttpError, getToken } from '@/api/client';
 import { useGeo } from '@/hooks/useGeo';
 import { useChatList } from '@/hooks/useChatList';
@@ -41,7 +41,8 @@ function makeTempId(prefix: string): string {
 
 export function ChatPage() {
   const { user } = useAuth();
-  const { socket, lastError: socketError, clearError: clearSocketError } = useSocket();
+  const { socket, connected, lastError: socketError, clearError: clearSocketError } = useSocket();
+  const isOperator = user?.role === 'support';
   const navigate = useNavigate();
   const params = useParams<{ chatId?: string }>();
   const [search, setSearch] = useSearchParams();
@@ -82,6 +83,30 @@ export function ChatPage() {
     let alive = true;
     setError(null);
 
+    // Оператор открывает ЧУЖОЙ чат — грузим через support endpoint
+    // (обычный /api/chats/:id вернёт 404, т.к. фильтрует по владельцу).
+    if (isOperator) {
+      getTicketThread(chatId)
+        .then(({ ticket, messages }) => {
+          if (!alive) return;
+          setCurrentChat({
+            id: chatId,
+            title: ticket.title || ticket.userName || 'Диалог',
+            createdAt: ticket.createdAt,
+            updatedAt: ticket.assignedAt || ticket.createdAt,
+          });
+          setStoredMessages(messages);
+          setTicketStatus(ticket.status);
+        })
+        .catch((err: unknown) => {
+          if (!alive) return;
+          setError(err instanceof HttpError ? err.message : 'Не удалось загрузить тикет');
+        });
+      return () => {
+        alive = false;
+      };
+    }
+
     getChat(chatId)
       .then((res) => {
         if (!alive) return;
@@ -104,7 +129,7 @@ export function ChatPage() {
     return () => {
       alive = false;
     };
-  }, [chatId, user, navigate]);
+  }, [chatId, user, isOperator, navigate]);
 
   useEffect(() => {
     if (room.resolvedSignal > 0) setTicketStatus('resolved');
@@ -207,14 +232,39 @@ export function ChatPage() {
     [chatId, handleCreateChat, list],
   );
 
+  // Живой диалог (через WebSocket, минуя ИИ): оператор всегда; пользователь —
+  // когда по чату есть активный тикет. Эхо сообщения вернётся через new_message.
+  const liveChannel =
+    Boolean(chatId) && (isOperator || ticketStatus === 'assigned' || ticketStatus === 'pending');
+
+  const sendViaSocket = useCallback(
+    (text: string): void => {
+      if (!socket || !connected || !chatId) {
+        setError('Нет связи с сервером — сообщение не отправлено. Проверьте подключение.');
+        return;
+      }
+      const tok = getToken();
+      if (!tok) {
+        setError('Сессия истекла, войдите снова.');
+        return;
+      }
+      socket.emit('send_message', { token: tok, chatId, content: text });
+    },
+    [socket, connected, chatId],
+  );
+
   const handleSend = useCallback(
     async (text: string) => {
       setError(null);
+      if (liveChannel) {
+        sendViaSocket(text);
+        return;
+      }
       const loc = shareGeo ? geo.location || (await geo.request()) : null;
       if (user) await handleSendAuth(text, loc ?? undefined);
       else await handleSendGuest(text, loc ?? undefined);
     },
-    [user, shareGeo, geo, handleSendAuth, handleSendGuest],
+    [liveChannel, sendViaSocket, user, shareGeo, geo, handleSendAuth, handleSendGuest],
   );
 
   const handleDelete = useCallback(
@@ -267,7 +317,7 @@ export function ChatPage() {
   }, [currentChat, chatId, user]);
 
   const operatorAvailable =
-    Boolean(user) && Boolean(chatId) &&
+    Boolean(user) && !isOperator && Boolean(chatId) &&
     (!ticketStatus || ticketStatus === 'resolved') &&
     messages.some((m) => m.role === 'assistant' && m.suggestOperator);
 
@@ -316,7 +366,7 @@ export function ChatPage() {
               </span>
             )}
           </div>
-          {user && (
+          {user && !isOperator && (
             <label className={styles.geoToggle}>
               <input
                 type="checkbox"
@@ -390,9 +440,11 @@ export function ChatPage() {
           disabled={sending}
           onTyping={user && chatId ? handleTyping : undefined}
           placeholder={
-            user
-              ? 'Опишите ситуацию или задайте вопрос...'
-              : 'Задайте вопрос (история не сохраняется)...'
+            isOperator
+              ? 'Ответьте пользователю...'
+              : user
+                ? 'Опишите ситуацию или задайте вопрос...'
+                : 'Задайте вопрос (история не сохраняется)...'
           }
         />
       </div>

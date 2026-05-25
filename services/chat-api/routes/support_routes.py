@@ -18,20 +18,31 @@ from models import ChatSession, Message, SupportTicket, User
 
 
 def serialize_support_chat(chat: ChatSession, ticket: SupportTicket) -> dict:
+    """Сериализует тикет в контракт фронта (тип SupportTicket).
+
+    id — идентификатор тикета, chatId — чата (нужен фронту для перехода в /chat/:chatId).
+    """
     last_message = chat.messages[-1] if chat.messages else None
+    if last_message:
+        preview = (
+            last_message.content[:120] + "…"
+            if len(last_message.content) > 120
+            else last_message.content
+        )
+    else:
+        preview = ""
     return {
-        "id": str(chat.id),
+        "id": str(ticket.id),
+        "chatId": str(chat.id),
         "title": chat.title or "Новый диалог",
         "userName": chat.user.name if chat.user else "Пользователь",
         "userEmail": chat.user.email if chat.user else "",
-        "createdAt": chat.created_at.isoformat(),
-        "updatedAt": chat.updated_at.isoformat() if chat.updated_at else chat.created_at.isoformat(),
-        "lastPreview": (last_message.content[:120] + "…") if last_message and len(last_message.content) > 120 else (last_message.content if last_message else ""),
-        "ticketStatus": ticket.status,
+        "status": ticket.status,
         "assignedOperatorId": str(ticket.assigned_operator_id) if ticket.assigned_operator_id else None,
         "createdAt": ticket.created_at.isoformat(),
         "assignedAt": ticket.assigned_at.isoformat() if ticket.assigned_at else None,
         "resolvedAt": ticket.resolved_at.isoformat() if ticket.resolved_at else None,
+        "preview": preview,
     }
 
 
@@ -227,12 +238,15 @@ def create_support_blueprint() -> Blueprint:
 
         return jsonify({
             "success": True,
-            "id": str(ticket.id),
-            "status": ticket.status,
-            "assignedOperatorId": str(ticket.assigned_operator_id) if ticket.assigned_operator_id else None,
-            "createdAt": ticket.created_at.isoformat(),
-            "assignedAt": ticket.assigned_at.isoformat() if ticket.assigned_at else None,
-            "resolvedAt": ticket.resolved_at.isoformat() if ticket.resolved_at else None,
+            "ticket": {
+                "id": str(ticket.id),
+                "chatId": str(chat_uuid),
+                "status": ticket.status,
+                "assignedOperatorId": str(ticket.assigned_operator_id) if ticket.assigned_operator_id else None,
+                "createdAt": ticket.created_at.isoformat(),
+                "assignedAt": ticket.assigned_at.isoformat() if ticket.assigned_at else None,
+                "resolvedAt": ticket.resolved_at.isoformat() if ticket.resolved_at else None,
+            },
         }), 200
 
     @bp.route("/request", methods=["POST"])
@@ -335,6 +349,7 @@ def create_support_blueprint() -> Blueprint:
             "success": True,
             "ticket": {
                 "id": str(ticket.id),
+                "chatId": str(chat_uuid),
                 "status": ticket.status,
                 "assignedOperatorId": str(ticket.assigned_operator_id) if ticket.assigned_operator_id else None,
             }

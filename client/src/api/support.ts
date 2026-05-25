@@ -1,9 +1,24 @@
 import { request } from './client';
 import type {
+  ChatMessage,
   SupportTicket,
   SupportTicketsResponse,
   OnlineOperatorsResponse,
 } from '@/types';
+
+export interface TicketThread {
+  ticket: SupportTicket;
+  messages: ChatMessage[];
+}
+
+/** Полный тред тикета для оператора (тикет + сообщения). Авто-назначает тикет на оператора. */
+export async function getTicketThread(chatId: string): Promise<TicketThread> {
+  const res = await request<{ success: boolean; ticket: SupportTicket; messages: ChatMessage[] }>(
+    `/api/support/tickets/${chatId}`,
+    { method: 'GET' },
+  );
+  return { ticket: res.ticket, messages: res.messages || [] };
+}
 
 export async function listTickets(): Promise<SupportTicket[]> {
   const res = await request<SupportTicketsResponse>('/api/support/tickets', { method: 'GET' });
