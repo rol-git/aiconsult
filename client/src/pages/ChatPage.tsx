@@ -289,6 +289,21 @@ export function ChatPage() {
     [socket, chatId],
   );
 
+  const handleToggleGeo = useCallback(async () => {
+    if (shareGeo) {
+      setShareGeo(false);
+      return;
+    }
+    // Включение сразу запрашивает доступ — браузер покажет промпт разрешения.
+    const loc = geo.location || (await geo.request());
+    if (loc) {
+      setShareGeo(true);
+    } else {
+      setShareGeo(false);
+      setError('Не удалось получить геопозицию. Разрешите доступ к геолокации в браузере.');
+    }
+  }, [shareGeo, geo]);
+
   const handleRequestOperator = useCallback(async () => {
     if (!chatId) return;
     setSupportLoading(true);
@@ -367,14 +382,36 @@ export function ChatPage() {
             )}
           </div>
           {user && !isOperator && (
-            <label className={styles.geoToggle}>
-              <input
-                type="checkbox"
-                checked={shareGeo}
-                onChange={(e) => setShareGeo(e.target.checked)}
-              />
-              <span>Геопозиция</span>
-            </label>
+            <button
+              type="button"
+              className={`${styles.geoToggle} ${shareGeo ? styles.geoToggleActive : ''}`}
+              onClick={() => void handleToggleGeo()}
+              disabled={geo.loading}
+              aria-pressed={shareGeo}
+              title={
+                shareGeo
+                  ? 'Геопозиция учитывается в ответах'
+                  : 'Разрешить доступ к геопозиции'
+              }
+            >
+              <svg
+                className={styles.geoIcon}
+                viewBox="0 0 24 24"
+                width="15"
+                height="15"
+                aria-hidden="true"
+              >
+                <path
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinejoin="round"
+                  d="M12 21s-7-6.5-7-11a7 7 0 1 1 14 0c0 4.5-7 11-7 11Z"
+                />
+                <circle cx="12" cy="10" r="2.4" fill="none" stroke="currentColor" strokeWidth="2" />
+              </svg>
+              <span>{geo.loading ? 'Запрос…' : 'Геопозиция'}</span>
+            </button>
           )}
         </header>
 

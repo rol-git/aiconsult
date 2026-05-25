@@ -10,8 +10,14 @@
 .bar {
   display: flex;
   align-items: center;
+  width: 100%;
   height: var(--header-h);
   gap: var(--space-4);
+  padding: 0 var(--space-6);
+}
+
+@media (max-width: 640px) {
+  .bar { padding: 0 var(--space-4); }
 }
 
 .logo {

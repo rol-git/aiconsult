@@ -29,7 +29,7 @@ export function Header() {
 
   return (
     <header className={styles.header}>
-      <div className={`container ${styles.bar}`}>
+      <div className={styles.bar}>
         <NavLink to="/" className={styles.logo} onClick={close}>
           <span className={styles.logoMark} aria-hidden="true">▲</span>
           <span className={styles.logoText}>ЧС-Консультант</span>
