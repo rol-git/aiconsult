@@ -1,0 +1,20 @@
+{
+  "name": "ЧС-Консультант — Тюменская область",
+  "short_name": "ЧС-Консультант",
+  "description": "ИИ-помощь при паводках: выплаты, ПВР, эвакуация, оператор",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#0b6cb0",
+  "lang": "ru-RU",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

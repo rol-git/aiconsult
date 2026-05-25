@@ -1,0 +1,132 @@
+.sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  background-color: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2);
+}
+
+.empty {
+  padding: var(--space-5) var(--space-3);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.item {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  border-radius: var(--radius-md);
+  margin-bottom: 4px;
+  transition: background-color 0.12s ease;
+}
+
+.item:hover {
+  background-color: var(--color-surface-2);
+}
+
+.item:hover .delete { opacity: 1; }
+
+.itemActive {
+  background-color: var(--color-primary-soft);
+}
+
+.itemActive .itemTitle { color: var(--color-primary); }
+
+.itemBtn {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 10px 12px;
+  cursor: pointer;
+  color: inherit;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.itemTitle {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.itemPreview {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.itemDate {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.delete {
+  width: 32px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease;
+  border-radius: var(--radius-md);
+  margin-right: 4px;
+}
+
+.delete:hover { color: var(--color-danger); background-color: var(--color-danger-soft); }
+
+.backdrop { display: none; }
+
+@media (max-width: 880px) {
+  .sidebar {
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    bottom: 0;
+    width: 80%;
+    max-width: 320px;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    box-shadow: var(--shadow-md);
+  }
+  .open { transform: translateX(0); }
+
+  .backdrop {
+    display: block;
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(15, 23, 42, 0.4);
+    z-index: 39;
+  }
+
+  .delete { opacity: 1; }
+}
